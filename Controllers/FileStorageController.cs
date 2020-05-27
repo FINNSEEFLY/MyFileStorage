@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.IO;
+using System;
 using Microsoft.AspNetCore.Http;
 
 namespace MyFileStorage.Controllers
@@ -87,7 +88,7 @@ namespace MyFileStorage.Controllers
                 }
             }
         }
-        
+
         [HttpHead("{*filename}")]
         public ActionResult HeadProcessing(string filename)
         {
@@ -112,11 +113,11 @@ namespace MyFileStorage.Controllers
                 }
             }
             catch
-            { 
+            {
                 return BadRequest("Некорректный запрос");
             }
         }
-        
+
 
         [HttpDelete("{*filename}")]
         public ActionResult DeleteProcessing(string filename)
@@ -153,6 +154,72 @@ namespace MyFileStorage.Controllers
             }
         }
 
-       
+        [HttpPut("{*filename}")]
+        public ActionResult PutProcessing(IFormFileCollection files, string filename)
+        {
+            string copyFromPath = Request.Headers.FirstOrDefault(str => str.Key == "X-Copy-From").Value;
+            if (filename != null)
+            {
+                if (files.Count == 0)
+                {
+                    if (System.IO.File.Exists(FileManipulate.ROOT + "\\" + copyFromPath))
+                    {
+                        if (FileManipulate.CopyFile(copyFromPath, filename))
+                        {
+                            return Ok("Файл " + copyFromPath + " был успешно копирован как " + filename);
+                        }
+                        else
+                        {
+                            return BadRequest("Копирование не удалось");
+                        }
+                    }
+                    else
+                    {
+                        return NotFound("Файл для копирования не найден");
+                    }
+                }
+                else if (files.Count == 1)
+                {
+                    if (FileManipulate.InsertFile(filename, files[0]))
+                    {
+                        return Ok("Файл " + files[0].FileName + " был успешно добавлен");
+                    }
+                    else
+                    {
+                        return BadRequest("Вставка не удалась");
+                    }
+                }
+                else if (files.Count > 1)
+                {
+                    if (Directory.Exists(FileManipulate.ROOT + "\\" + filename))
+                    {
+                        return Ok(FileManipulate.InsertFiles(files, filename));
+                    }
+                    else
+                    {
+                        return NotFound("Директория для вставки не найдена");
+                    }
+                }
+                else
+                {
+                    return BadRequest("Ошибка в запросе");
+                }
+            }
+            else if (files.Count > 1)
+            {
+                if (Directory.Exists(FileManipulate.ROOT))
+                {
+                    return Ok(FileManipulate.InsertFiles(files, ""));
+                }
+                else
+                {
+                    return NotFound("Директория для вставки не найдена");
+                }
+            }
+            else
+            {
+                return BadRequest("Ошибка в запросе");
+            }
+        }
     }
 }
