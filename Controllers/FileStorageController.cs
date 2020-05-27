@@ -1,17 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 using System.IO;
 using Microsoft.AspNetCore.Http;
-using Microsoft.VisualBasic;
-using Microsoft.VisualBasic.FileIO;
-using System.Text;
-using Microsoft.AspNetCore.Mvc.Routing;
-using Microsoft.AspNetCore.Razor.TagHelpers;
 
 namespace MyFileStorage.Controllers
 {
@@ -19,24 +10,8 @@ namespace MyFileStorage.Controllers
     [Route("[controller]/path/to")]
     public class FileStorageController : ControllerBase
     {
-        private string Root { get; } = "D:\\MyFileStorage";
 
         private readonly ILogger<FileStorageController> _logger;
-
-        public List<string> CollectDirectory(string Path)
-        {
-            var directories = Directory.GetDirectories(Path);
-            var files = Directory.GetFiles(Path);
-            var result = new List<string>();
-            result.AddRange(directories);
-            result.AddRange(files);
-            result.ForEach(str => str.Replace("D:\\MyFileStorage\\", ""));
-            for (int i = 0; i <= result.Count - 1; i++)
-            {
-                result[i] = result[i].Replace(Root+"\\", "");
-            }
-            return result;
-        }
 
         public FileStorageController(ILogger<FileStorageController> logger)
         {
@@ -49,18 +24,32 @@ namespace MyFileStorage.Controllers
         {
             if (filename == null || filename.Trim() == "")
             {
-                if (Directory.GetFiles(Root).Length == 0 && Directory.GetDirectories(Root).Length == 0)
+                try
                 {
-                    return Ok("Директория пустая");
+                    if (Directory.GetFiles(FileManipulate.ROOT).Length == 0 && Directory.GetDirectories(FileManipulate.ROOT).Length == 0)
+                    {
+                        return Ok("Директория пустая");
+                    }
+                    else
+                    {
+                        try
+                        {
+                            return new JsonResult(FileManipulate.GetAllFiles(FileManipulate.ROOT));
+                        }
+                        catch
+                        {
+                            return BadRequest("Ошибка просмотра директории");
+                        }
+                    }
                 }
-                else
+                catch
                 {
-                    return new JsonResult(CollectDirectory(Root));
+                    return BadRequest("Ошибка просмотра директории, вероятно она удалена");
                 }
             }
             else
             {
-                string path = Root + "\\" + filename;
+                string path = FileManipulate.ROOT + "\\" + filename;
                 if (Directory.Exists(path))
                 {
                     if (Directory.GetFiles(path).Length == 0 && Directory.GetDirectories(path).Length == 0)
@@ -69,7 +58,14 @@ namespace MyFileStorage.Controllers
                     }
                     else
                     {
-                        return new JsonResult(CollectDirectory(path));
+                        try
+                        {
+                            return new JsonResult(FileManipulate.GetAllFiles(path));
+                        }
+                        catch
+                        {
+                            return BadRequest("Ошибка просмотра директории");
+                        }
                     }
 
                 }
@@ -84,14 +80,79 @@ namespace MyFileStorage.Controllers
                     {
                         return BadRequest("Не удалось отправить файл");
                     }
-                } else
+                }
+                else
                 {
-                    return BadRequest("Данный файл или директория не существует");
+                    return NotFound("Данный файл или директория не существует");
                 }
             }
         }
         
+        [HttpHead("{*filename}")]
+        public ActionResult HeadProcessing(string filename)
+        {
+            try
+            {
+                var path = FileManipulate.ROOT + "\\" + filename;
+                if (System.IO.File.Exists(path))
+                {
+                    var fileInfo = new FileInfo(path);
 
-    
+                    Response.Clear();
+                    Response.Headers.Add("Content-Disposition", "attachment; filename=" + fileInfo.Name);
+                    Response.Headers.ContentLength = fileInfo.Length;
+                    Response.Headers.Add("File-Extension", fileInfo.Extension);
+                    Response.Headers.Add("Creation-Time", fileInfo.CreationTime.ToString("dd.MM.yyy HH:mm:ss"));
+                    Response.Headers.Add("Last-Write-Time", fileInfo.LastWriteTime.ToString("dd.MM.yyy HH:mm:ss"));
+                    return Ok();
+                }
+                else
+                {
+                    return NotFound("Данный файл не найден");
+                }
+            }
+            catch
+            { 
+                return BadRequest("Некорректный запрос");
+            }
+        }
+        
+
+        [HttpDelete("{*filename}")]
+        public ActionResult DeleteProcessing(string filename)
+        {
+            try
+            {
+                var path = FileManipulate.ROOT + "\\" + filename;
+                if (System.IO.File.Exists(path))
+                {
+                    System.IO.File.Delete(path);
+                    return Ok("файл " + filename + " успешно удален!");
+
+                }
+                else if (Directory.Exists(path))
+                {
+                    if (filename != "" && filename != null)
+                    {
+                        Directory.Delete(path, true);
+                        return Ok("Директория " + filename + " и все содержащиеся в ней файлы успешно удалены!");
+                    }
+                    else
+                    {
+                        return BadRequest("Нельзя удалять корневой каталог");
+                    }
+                }
+                else
+                {
+                    return BadRequest("Некорректный запрос!");
+                }
+            }
+            catch
+            {
+                return BadRequest("Некорректный запрос!");
+            }
+        }
+
+       
     }
 }
