@@ -97,15 +97,7 @@ namespace MyFileStorage.Controllers
                 var path = FileManipulate.ROOT + "\\" + filename;
                 if (System.IO.File.Exists(path))
                 {
-                    var fileInfo = new FileInfo(path);
-
-                    Response.Clear();
-                    Response.Headers.Add("Content-Disposition", "attachment; filename=" + fileInfo.Name);
-                    Response.Headers.ContentLength = fileInfo.Length;
-                    Response.Headers.Add("File-Extension", fileInfo.Extension);
-                    Response.Headers.Add("Creation-Time", fileInfo.CreationTime.ToString("dd.MM.yyy HH:mm:ss"));
-                    Response.Headers.Add("Last-Write-Time", fileInfo.LastWriteTime.ToString("dd.MM.yyy HH:mm:ss"));
-                    return Ok();
+                    return GetProcessing(filename);
                 }
                 else
                 {
