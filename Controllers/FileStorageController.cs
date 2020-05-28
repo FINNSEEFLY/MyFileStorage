@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.IO;
-using System;
 using Microsoft.AspNetCore.Http;
 
 namespace MyFileStorage.Controllers
