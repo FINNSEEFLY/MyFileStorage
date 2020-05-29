@@ -18,7 +18,7 @@ namespace MyFileStorage.Controllers
             _logger = logger;
         }
 
-        [HttpGet()]
+
         [HttpGet("{*filename}")]
         public ActionResult GetProcessing(string filename)
         {
