@@ -18,7 +18,6 @@ namespace MyFileStorage.Controllers
             _logger = logger;
         }
 
-
         [HttpGet("{*filename}")]
         public ActionResult GetProcessing(string filename)
         {
@@ -109,7 +108,6 @@ namespace MyFileStorage.Controllers
             }
         }
 
-
         [HttpDelete("{*filename}")]
         public ActionResult DeleteProcessing(string filename)
         {
@@ -136,7 +134,7 @@ namespace MyFileStorage.Controllers
                 }
                 else
                 {
-                    return BadRequest("Некорректный запрос!");
+                    return NotFound("Файл или директория не найдены");
                 }
             }
             catch
